@@ -200,7 +200,7 @@ char *loadBMP(struct _AUX_RGBImageRec* image)
 	FILE *f = fopen("C:\\tmp.bmp", "rb");
 	if (!f) return NULL;
 	BMPheader bh;
-	fread(&bh.bfType, 1, sizeof(unsigned short int),f);
+	fread(&bh.bfType, 1, sizeof(unsigned short int), f);
 	fread(&bh.bfSize, 1, sizeof(unsigned int), f);
 	fread(&bh.bfReserved, 1, sizeof(unsigned int), f);
 	fread(&bh.bfOffBits, 1, sizeof(unsigned int), f);
@@ -233,8 +233,8 @@ char *loadBMP(struct _AUX_RGBImageRec* image)
 		(bh.biSize != 40 && bh.biSize != 108 && bh.biSize != 124) ||
 		bh.bfOffBits != 14 + bh.biSize ||
 
-		bh.biWidth <1 || bh.biWidth >10000 ||
-		bh.biHeight<1 || bh.biHeight>10000 ||
+		bh.biWidth < 1 || bh.biWidth >10000 ||
+		bh.biHeight < 1 || bh.biHeight>10000 ||
 		bh.biBitCount != 24 ||             // пока рассматриваем только полноцветные изображения
 		bh.biCompression != 0                // пока рассматриваем только несжатие изображения
 		)
@@ -244,47 +244,36 @@ char *loadBMP(struct _AUX_RGBImageRec* image)
 	}
 
 	// Заголовок прочитан и проверен, тип - верный (BGR-24), размеры (mx,my) найдены
-	 mx = bh.biWidth;
-	 my = bh.biHeight;
-	 
-
-	 image->sizeX = bh.biWidth;
-	 image->sizeY = bh.biHeight;
-
-	 image->sizeX = 354;
-	 image->sizeY = 354;
+	mx = bh.biWidth;
+	my = bh.biHeight;
 
 
-	 int mx3 = (3 * mx + 3 & (-4));    // Compute row width in file, including padding to 4-byte boundary
+	image->sizeX = bh.biWidth;
+	image->sizeY = bh.biHeight;
+
+	image->sizeX = 354;
+	image->sizeY = 354;
+
+
+	int mx3 = (3 * mx + 3 & (-4));    // Compute row width in file, including padding to 4-byte boundary
 	unsigned char *tmp_buf = malloc(sizeof(unsigned char)*mx3*my);    // читаем данные
-	
+
 	unsigned char ff = 0;
 
-
-	int x;
-	for (x = 0; x < filesize/3; x += 3)
+	int y=0;
+	int x=0;
+	int oldX=0;
+	for (y = 0; y < my; y++)
 	{
-		fread(tmp_buf + mx3 * 0 + x + 2, sizeof(unsigned char), 1, f);
-		fread(tmp_buf + mx3 * 0 + x + 1, sizeof(unsigned char), 1, f);
+		for (x = oldX; x < oldX + mx3 - 3; x += 3)
+		{
+			fread(tmp_buf + x + 2, sizeof(unsigned char), 1, f);
+			fread(tmp_buf + x + 1, sizeof(unsigned char), 1, f);
+			fread(tmp_buf + x, sizeof(unsigned char), 1, f);
+		}
+		oldX = x;
 		fread(&ff, sizeof(unsigned char), 1, f);
-		tmp_buf[mx3 * 0 + x] = ff;
-	}
-	tmp_buf[mx3 * 0 + x] = 0;
-	tmp_buf[mx3 * 0 + x + 1] = 0;
-	tmp_buf[mx3 * 0 + x + 2] = 0;
-	fread(&ff, sizeof(unsigned char), 1, f);
-	fread(&ff, sizeof(unsigned char), 1, f);
-	/*fread(&ff, sizeof(unsigned char), 1, f);
-	fread(&ff, sizeof(unsigned char), 1, f);
-	fread(&ff, sizeof(unsigned char), 1, f);
-	fread(&ff, sizeof(unsigned char), 1, f);
-	*/
-	int prev = x;
-	for (int x = 0; x < mx3-3; x += 3)
-	{
-		fread(tmp_buf + prev  + x + 2, sizeof(unsigned char), 1, f);
-		fread(tmp_buf + prev  + x + 1, sizeof(unsigned char), 1, f);
-		fread(tmp_buf + prev  + x, sizeof(unsigned char), 1, f);
+		fread(&ff, sizeof(unsigned char), 1, f);
 	}
 	
 	// данные прочитаны
