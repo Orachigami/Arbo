@@ -196,7 +196,7 @@ typedef struct {
 } BMPheader;
 char *loadBMP(struct _AUX_RGBImageRec* image)
 {
-	int mx, my;
+	int row_leng, my;
 	FILE *f = fopen("C:\\tmp.bmp", "rb");
 	if (!f) return NULL;
 	BMPheader bh;
@@ -215,8 +215,6 @@ char *loadBMP(struct _AUX_RGBImageRec* image)
 	fread(&bh.biYPelsPerMeter, 1, sizeof(unsigned int), f);
 	fread(&bh.biClrUsed, 1, sizeof(unsigned int), f);
 	fread(&bh.biClrImportant, 1, sizeof(unsigned int), f);
-	//if (res != sizeof(BMPheader)) { fclose(f); return NULL; }
-	//res = 154800;
 	// проверяем сигнатуру
 	if (bh.bfType != 0x4d42 && bh.bfType != 0x4349 && bh.bfType != 0x5450) { fclose(f); return NULL; }
 
@@ -235,48 +233,38 @@ char *loadBMP(struct _AUX_RGBImageRec* image)
 
 		bh.biWidth < 1 || bh.biWidth >10000 ||
 		bh.biHeight < 1 || bh.biHeight>10000 ||
-		bh.biBitCount != 24 ||             // пока рассматриваем только полноцветные изображения
-		bh.biCompression != 0                // пока рассматриваем только несжатие изображения
+		bh.biBitCount != 24 ||
+		bh.biCompression != 0
 		)
 	{
 		fclose(f);
 		return NULL;
 	}
 
-	// Заголовок прочитан и проверен, тип - верный (BGR-24), размеры (mx,my) найдены
-	mx = bh.biWidth;
+	row_leng = bh.biWidth*3;
 	my = bh.biHeight;
 
-
 	image->sizeX = bh.biWidth;
-	image->sizeY = bh.biHeight;
+	image->sizeY = my;
 
-	image->sizeX = 354;
-	image->sizeY = 354;
+	unsigned char *tmp_buf = malloc(sizeof(unsigned char)*bh.biHeight*row_leng);
 
-
-	int mx3 = (3 * mx + 3 & (-4));    // Compute row width in file, including padding to 4-byte boundary
-	unsigned char *tmp_buf = malloc(sizeof(unsigned char)*mx3*my);    // читаем данные
-
-	unsigned char ff = 0;
+	__int16 skip=0;
 
 	int y=0;
 	int x=0;
 	int oldX=0;
 	for (y = 0; y < my; y++)
 	{
-		for (x = oldX; x < oldX + mx3 - 3; x += 3)
+		for (x = oldX; x < oldX + row_leng; x += 3)
 		{
 			fread(tmp_buf + x + 2, sizeof(unsigned char), 1, f);
 			fread(tmp_buf + x + 1, sizeof(unsigned char), 1, f);
 			fread(tmp_buf + x, sizeof(unsigned char), 1, f);
 		}
 		oldX = x;
-		fread(&ff, sizeof(unsigned char), 1, f);
-		fread(&ff, sizeof(unsigned char), 1, f);
+		fread(&skip, sizeof(__int16), 1, f);
 	}
-	
-	// данные прочитаны
 	fclose(f);
 
 	return tmp_buf;
