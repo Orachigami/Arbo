@@ -218,15 +218,11 @@ char *loadBMP(struct _AUX_RGBImageRec* image)
 	// проверяем сигнатуру
 	if (bh.bfType != 0x4d42 && bh.bfType != 0x4349 && bh.bfType != 0x5450) { fclose(f); return NULL; }
 
-	// проверка размера файла
-	fseek(f, 0, SEEK_END);
-	int filesize = ftell(f);
 	// восстановим указатель в файле:
 	fseek(f, sizeof(BMPheader) - 2, SEEK_SET);
 	//fseek(f, sizeof(BMPheader), SEEK_SET);
 	// проверим условия
-	if (bh.bfSize != filesize ||
-		bh.bfReserved != 0 ||
+	if (bh.bfReserved != 0 ||
 		bh.biPlanes != 1 ||
 		(bh.biSize != 40 && bh.biSize != 108 && bh.biSize != 124) ||
 		bh.bfOffBits != 14 + bh.biSize ||
