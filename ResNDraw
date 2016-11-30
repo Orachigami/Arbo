@@ -1,0 +1,55 @@
+//02: RESOURCE MANAGER
+struct _AUX_RGBImageRec *mainArray;
+int arrLen = -1;
+int *priorities;
+AUX_RGBImageRec* image;
+void DrawPicture(int x, int y, int oldx, int oldy)
+{
+	int imgs = 1, i=0, g=0, tmp0, tmp1;
+	if (oldx >= 0)
+	{
+		for (i = 0; i < (mainArray + imgs)->sizeY; i++)
+			for (g = 0; g < (mainArray + imgs)->sizeX; g++)
+			{
+				tmp1 = ((i + oldy) * image->sizeX + oldx + g) * 3;
+				image->data[tmp1] = (mainArray)->data[tmp1];
+				image->data[tmp1 + 1] = (mainArray)->data[tmp1 + 1];
+				image->data[tmp1 + 2] = (mainArray)->data[tmp1 + 2];
+			}
+	}
+	for (imgs; imgs <= arrLen; imgs++)
+	{
+		for (i=0; i < (mainArray + imgs)->sizeY; i++)
+			for (g=0; g < (mainArray + imgs)->sizeX; g++)
+			{
+				tmp0 = ((i*(mainArray + 1)->sizeX + g) * 3);
+				if ((mainArray + 1)->data[tmp0] != 255 || (mainArray + imgs)->data[tmp0 + 1] != 0 || (mainArray + imgs)->data[tmp0 + 2] != 0)
+				{ 
+					tmp1 = ((i +y) * image->sizeX + x +g) * 3;
+					image->data[tmp1] = (mainArray + imgs)->data[tmp0];
+					image->data[tmp1 +1] = (mainArray + imgs)->data[tmp0+1];
+					image->data[tmp1 +2] = (mainArray + imgs)->data[tmp0+2];
+				}
+			}
+	}
+	glutSwapBuffers();
+}
+
+const char* BuildString(char* name)
+{
+	char* path = malloc(sizeof(char)*(strlen(HOME) + strlen(name)) + 4);
+	strcpy(path, HOME);
+	strcat(path, name);
+	strcat(path, ".bmp");
+	return (const)path;
+	
+}
+
+void LoadNewImage(const char* name)
+{
+	arrLen++;
+	if (mainArray == NULL)
+		mainArray = (struct _AUX_RGBImageRec*)realloc(NULL, sizeof(struct _AUX_RGBImageRec));
+	else mainArray = (struct _AUX_RGBImageRec*)realloc(mainArray, sizeof(struct _AUX_RGBImageRec)*(arrLen+1));
+	(mainArray + arrLen)->data = loadBMP((mainArray + arrLen), BuildString(name));
+}
