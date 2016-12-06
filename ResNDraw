@@ -1,55 +1,120 @@
-//02: RESOURCE MANAGER
-struct _AUX_RGBImageRec *mainArray;
-int arrLen = -1;
-int *priorities;
-AUX_RGBImageRec* image;
-void DrawPicture(int x, int y, int oldx, int oldy)
+#ifndef RESOURCEMANAGER_C
+#define RESOURCEMANAGER_C
+
+#include "Library.h"
+#include "Artist.c"
+#include <stdio.h>
+
+static const char* HOME = "C:\\!ARBO\\";
+typedef unsigned short WORD;
+typedef struct _BMPheader
 {
-	int imgs = 1, i=0, g=0, tmp0, tmp1;
-	if (oldx >= 0)
+	WORD   bfType;         // 0x4d42 | 0x4349 | 0x5450
+	int    bfSize;         // размер файла
+	int    bfReserved;     // 0
+	int    bfOffBits;      // смещение до поля данных,
+						   // обычно 54 = 16 + biSize
+	int    biSize;         // размер струкуры в байтах:
+						   // 40(BITMAPINFOHEADER) или 108(BITMAPV4HEADER)
+						   // или 124(BITMAPV5HEADER)
+	int    biWidth;        // ширина в точках
+	int    biHeight;       // высота в точках
+	WORD   biPlanes;       // всегда должно быть 1
+	WORD   biBitCount;     // 0 | 1 | 4 | 8 | 16 | 24 | 32
+	int    biCompression;  // BI_RGB | BI_RLE8 | BI_RLE4 |
+						   // BI_BITFIELDS | BI_JPEG | BI_PNG
+						   // реально используется лишь BI_RGB
+	int    biSizeImage;    // Количество байт в поле данных
+						   // Обычно устанавливается в 0
+	int    biXPelsPerMeter;// горизонтальное разрешение, точек на дюйм
+	int    biYPelsPerMeter;// вертикальное разрешение, точек на дюйм
+	int    biClrUsed;      // Количество используемых цветов
+						   // (если есть таблица цветов)
+	int    biClrImportant; // Количество существенных цветов.
+						   // Можно считать, просто 0
+}BMPheader;
+char *loadBMP(struct _AUX_RGBImageRec* img, const char* path)
+{
+	int row_leng, my;
+	FILE *f = fopen(path, "rb");
+	if (!f) return NULL;
+	BMPheader bh;
+	fread(&bh.bfType, 1, sizeof(unsigned short int), f);
+	fread(&bh.bfSize, 1, sizeof(unsigned int), f);
+	fread(&bh.bfReserved, 1, sizeof(unsigned int), f);
+	fread(&bh.bfOffBits, 1, sizeof(unsigned int), f);
+	fread(&bh.biSize, 1, sizeof(unsigned int), f);
+	fread(&bh.biWidth, 1, sizeof(unsigned int), f);
+	fread(&bh.biHeight, 1, sizeof(unsigned int), f);
+	fread(&bh.biPlanes, 1, sizeof(unsigned short int), f);
+	fread(&bh.biBitCount, 1, sizeof(unsigned short int), f);
+	fread(&bh.biCompression, 1, sizeof(unsigned int), f);
+	fread(&bh.biSizeImage, 1, sizeof(unsigned int), f);
+	fread(&bh.biXPelsPerMeter, 1, sizeof(unsigned int), f);
+	fread(&bh.biYPelsPerMeter, 1, sizeof(unsigned int), f);
+	fread(&bh.biClrUsed, 1, sizeof(unsigned int), f);
+	fread(&bh.biClrImportant, 1, sizeof(unsigned int), f);
+	// проверяем сигнатуру
+	if (bh.bfType != 0x4d42 && bh.bfType != 0x4349 && bh.bfType != 0x5450) { fclose(f); return NULL; }
+
+	// восстановим указатель в файле:
+	fseek(f, sizeof(BMPheader) - 2, SEEK_SET);
+	// проверим условия
+	if (bh.bfReserved != 0 ||
+		bh.biPlanes != 1 ||
+		(bh.biSize != 40 && bh.biSize != 108 && bh.biSize != 124) ||
+		bh.bfOffBits != 14 + bh.biSize ||
+
+		bh.biWidth < 1 || bh.biWidth >10000 ||
+		bh.biHeight < 1 || bh.biHeight>10000 ||
+		bh.biBitCount != 24 ||
+		bh.biCompression != 0
+		)
 	{
-		for (i = 0; i < (mainArray + imgs)->sizeY; i++)
-			for (g = 0; g < (mainArray + imgs)->sizeX; g++)
-			{
-				tmp1 = ((i + oldy) * image->sizeX + oldx + g) * 3;
-				image->data[tmp1] = (mainArray)->data[tmp1];
-				image->data[tmp1 + 1] = (mainArray)->data[tmp1 + 1];
-				image->data[tmp1 + 2] = (mainArray)->data[tmp1 + 2];
-			}
+		fclose(f);
+		return NULL;
 	}
-	for (imgs; imgs <= arrLen; imgs++)
+	row_leng = bh.biWidth *3;
+	my = bh.biHeight;
+
+	img->sizeX = bh.biWidth;
+	img->sizeY = my;
+
+	unsigned char *tmp_buf = malloc(sizeof(unsigned char)*bh.biHeight*row_leng);
+	int null = 0;
+	int y = 0;
+	int x = 0;
+	int oldX = 0;
+	int skip = bh.biWidth % 4;
+	for (y = 0; y < my; y++)
 	{
-		for (i=0; i < (mainArray + imgs)->sizeY; i++)
-			for (g=0; g < (mainArray + imgs)->sizeX; g++)
-			{
-				tmp0 = ((i*(mainArray + 1)->sizeX + g) * 3);
-				if ((mainArray + 1)->data[tmp0] != 255 || (mainArray + imgs)->data[tmp0 + 1] != 0 || (mainArray + imgs)->data[tmp0 + 2] != 0)
-				{ 
-					tmp1 = ((i +y) * image->sizeX + x +g) * 3;
-					image->data[tmp1] = (mainArray + imgs)->data[tmp0];
-					image->data[tmp1 +1] = (mainArray + imgs)->data[tmp0+1];
-					image->data[tmp1 +2] = (mainArray + imgs)->data[tmp0+2];
-				}
-			}
+		for (x = oldX; x < oldX + row_leng; x += 3)
+		{
+			fread(tmp_buf + x + 2, sizeof(unsigned char), 1, f);
+			fread(tmp_buf + x + 1, sizeof(unsigned char), 1, f);
+			fread(tmp_buf + x, sizeof(unsigned char), 1, f);
+		}
+		oldX = x;
+		if (skip>0) fread(&null, sizeof(char), skip, f);
 	}
-	glutSwapBuffers();
+	fclose(f);
+
+	return tmp_buf;
 }
 
-const char* BuildString(char* name)
+const char* buildString(char* name)
 {
 	char* path = malloc(sizeof(char)*(strlen(HOME) + strlen(name)) + 4);
 	strcpy(path, HOME);
 	strcat(path, name);
 	strcat(path, ".bmp");
-	return (const)path;
-	
+	return path;
 }
-
-void LoadNewImage(const char* name)
+void loadNewImage(char* name)
 {
-	arrLen++;
-	if (mainArray == NULL)
-		mainArray = (struct _AUX_RGBImageRec*)realloc(NULL, sizeof(struct _AUX_RGBImageRec));
-	else mainArray = (struct _AUX_RGBImageRec*)realloc(mainArray, sizeof(struct _AUX_RGBImageRec)*(arrLen+1));
-	(mainArray + arrLen)->data = loadBMP((mainArray + arrLen), BuildString(name));
+	main_array.length++;
+	mainArray = mainArray == NULL ? (struct _AUX_RGBImageRec*)realloc(NULL, sizeof(struct _AUX_RGBImageRec)) : (struct _AUX_RGBImageRec*)realloc(mainArray, sizeof(struct _AUX_RGBImageRec)*(main_array.length + 1));
+
+	(mainArray + main_array.length)->data = loadBMP((mainArray + main_array.length), buildString(name));
 }
+#endif // !RESOURCEMANAGER_C
