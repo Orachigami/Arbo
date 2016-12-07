@@ -81,7 +81,6 @@ char *loadBMP(struct _AUX_RGBImageRec* img, const char* path)
 	img->sizeY = my;
 
 	unsigned char *tmp_buf = malloc(sizeof(unsigned char)*bh.biHeight*row_leng);
-	int null = 0;
 	int y = 0;
 	int x = 0;
 	int oldX = 0;
@@ -95,7 +94,7 @@ char *loadBMP(struct _AUX_RGBImageRec* img, const char* path)
 			fread(tmp_buf + x, sizeof(unsigned char), 1, f);
 		}
 		oldX = x;
-		if (skip>0) fread(&null, sizeof(char), skip, f);
+		fseek(f, sizeof(char) * skip, SEEK_CUR);
 	}
 	fclose(f);
 
