@@ -116,4 +116,80 @@ void loadNewImage(char* name)
 
 	(mainArray + main_array.length)->data = loadBMP((mainArray + main_array.length), buildString(name));
 }
+
+void saveData()
+{
+	int i = 0, g;
+	char len;
+	FILE* datafile = fopen("C:\\!ARBO\\data.bin", "wb");
+	fwrite(&gmlen, sizeof(int), 1, datafile);
+	for (i = 0; StringPool[i] != "//" && i < 99; i++)
+	{
+		len = strlen(StringPool[i]);
+		fwrite(&len, sizeof(char), 1, datafile);
+		fputs(StringPool[i], datafile);
+		//fputc('\0', datafile);
+	}
+	fputc('\0', datafile);
+
+	for (i = 0; i < gmlen; i++)
+	{
+		fwrite(&GameObjects[i]->busy, sizeof(unsigned char), 3, datafile);
+		//for (g = 0; g < GameObjects[i]->animations; g++)
+		fwrite(GameObjects[i]->animation, sizeof(struct model), GameObjects[i]->animations, datafile);
+
+		fwrite(&GameObjects[i]->x, sizeof(int), 5, datafile);
+		fwrite(&GameObjects[i]->vector, sizeof(unsigned char), 3, datafile);
+	}
+	fclose(datafile);
+}
+
+void readData()
+{
+	int i = 0 , g=0;
+	char len;
+	FILE* datafile = fopen("C:\\!ARBO\\data.bin", "rb");
+	struct _GameObject* test;
+	struct model* animations;
+	fread(&gmlen, sizeof(int), 1, datafile);
+	GameObjects = malloc(sizeof(int) * gmlen);
+	test = malloc(sizeof(struct _GameObject) * gmlen);
+	animations = malloc(sizeof(struct model)* gmlen * 3);
+	StringPool = malloc(sizeof(char*) * 100);
+	main_array.length = -1;
+	for (i = 0; i < 99; i++)
+	{
+		len = fgetc(datafile);
+		StringPool[i] = malloc(sizeof(char)*len);
+		fgets(StringPool[i], len+1, datafile);
+		printf("%s\n", StringPool[i]);
+		if (StringPool[i][0] == '\0') break;
+		loadNewImage(StringPool[i]);
+	}
+	
+	for (i = 0; i < gmlen; i++)
+	{
+		fread(&test[i].busy, sizeof(unsigned char), 3, datafile);
+		test[i].animation = malloc(sizeof(struct model)*test[i].animations);
+		fread(test[i].animation, sizeof(struct model), test[i].animations, datafile);
+		fread(&test[i].x, sizeof(int), 5, datafile);
+		fread(&test[i].vector, sizeof(unsigned char), 3, datafile);
+		g += test[i].animations;
+		GameObjects[i] = &test[i];
+		for (g = 0; g < test[i].animations; g++)
+		test[i].animation[g].frame = mainArray[test[i].animation[g].id].data;
+	}
+
+	for (i = 0; i < gmlen; i++)
+	{
+		GameObjects[i] = &test[i];
+		printf("Object #%d\nbusy: %d\ncurrent_animation: %d\nanimations %d\nx %d\ny: %d\n", (i + 1), test[i].busy, test[i].current_animation, test[i].animations, test[i].x, test[i].y);
+		for (g = 0; g < test[i].animations; g++)
+		printf("\tHis animation:\n\t\tid: %d\n\t\tmsecs: %d\n\t\tframes: %d\n\t\twidth: %d\n\n", test[i].animation[g].id, test[i].animation[g].msecs, test[i].animation[g].frames, test[i].animation[g].width);
+	}
+	for (i = 0; i <= main_array.length; i++)
+		printf("Width: %d; Height: %d\n", mainArray[i].sizeX, mainArray[i].sizeY);
+	fclose(datafile);
+}
+
 #endif // !RESOURCEMANAGER_C
