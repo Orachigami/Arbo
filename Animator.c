@@ -2,8 +2,10 @@
 #define ANIMATOR_C
 #include "Library.h"
 #include "Artist.c"
-
+#include "Controller.c"
+#include "Physics.c"
 static int length = 0;
+//Добавить в очередь прорисовки кадров
 void addToOrder(GameObject* object, int frame)
 {
 	static int dozen = 1;
@@ -15,6 +17,7 @@ void addToOrder(GameObject* object, int frame)
 	_line.sent_time = GetTickCount();
 	order[length - 1] = _line;
 }
+//Обновление кадра анимации
 void updateSprite(GameObject* object, int frame)
 {
 	if (object->animation[object->current_animation].interrupt == 1)
@@ -31,7 +34,7 @@ void updateSprite(GameObject* object, int frame)
 		if (object->animation[object->current_animation].loop == 0) object->busy = 0;
 		else addToOrder(object, 0);
 }
-
+//Удалить из очереди
 void removeFromOrder(int id)
 {
 	--length;
@@ -39,7 +42,17 @@ void removeFromOrder(int id)
 	for (; i < length; i++)
 		order[i] = order[i + 1];
 }
-
+void resetAnimation(GameObject* object)
+{
+	register int i = 0;
+	for (i; i < length; i++)
+		if (order[i].object == object)
+		{
+			removeFromOrder(i);
+			break;
+		}
+}
+//Итератор для очереди кадров
 void iterate(int timer_id)
 {
 	register int i = 0;
@@ -50,9 +63,12 @@ void iterate(int timer_id)
 			updateSprite(order[i].object, order[i].frame);
 			removeFromOrder(i);
 		}
-	glutTimerFunc(25, iterate, timer_id);
+	//playerController(0);
+	i = 16 - now;
+	if (i < 0) i = 0;
+	glutTimerFunc(i, iterate, timer_id);
 }
-
+//Функция, вызывающая перерисовку текущего кадра анимации
 void playAnimation(GameObject* object, int animation)
 {
 	register int i = 0;
