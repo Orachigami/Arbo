@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include "Library.h"
 #include "ResourceManager.c"
-#define temp 3
 AUX_RGBImageRec* image;
 
 int last_id = 0;
@@ -83,7 +82,7 @@ void drawObject(GameObject* object, int oldx, int oldy)
 		delta_y = object->y - oldy;
 	int id = object->animation[object->current_animation].id, 
 		real_Height = (mainArray + id)->sizeY / object->animation[object->current_animation].frames, 
-		tmp0, tmp1;
+		tmp1;
 	register int i = 0,
 		g = 0,
 		k = 0;
@@ -104,12 +103,13 @@ void drawObject(GameObject* object, int oldx, int oldy)
 	original_area.x = object->x;
 	original_area.y = object->y;
 	//OrderToClear.area[++OrderToClear.last_id] = original_area;
-	for (i = 0; i < temp; i++)
+	for (i = 0; i < gmlen; i++)
 	{
 		checked_object = GameObjects[i];
 		if (object != checked_object)
 			_response = checkCrossing(&excluded_area, checked_object); 
-		else _response = checkCrossing(&original_area, checked_object);
+		else 
+			_response = checkCrossing(&original_area, checked_object);
 		if (_response.height != -1)
 		{
 			_response.id = i;
