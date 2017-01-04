@@ -1,6 +1,8 @@
 #ifndef ArboLib
 #define ArboLib
 #include <GL/freeglut.h>
+unsigned char pixel[3] = { 255, 0, 0 };
+
 typedef struct _GameObject
 {
 	unsigned char busy;
@@ -9,14 +11,12 @@ typedef struct _GameObject
 	struct model* animation;
 	int x;
 	int y;
+	int lx, ty, rx;	//Крайние точки
+	signed char vector;
+	unsigned char air_state;
+	unsigned char weight;
 } GameObject;
 
-struct _GameObject** GameObjects;
-typedef struct _AUX_RGBImageRec
-{
-	GLint sizeX, sizeY;
-	unsigned char *data;
-} AUX_RGBImageRec;
 struct model
 {
 	unsigned char* frame;
@@ -26,12 +26,18 @@ struct model
 	int name;
 	unsigned char loop;
 	unsigned char interrupt;
+	int height;
+	int width;
 };
+
+struct _GameObject** GameObjects;
+int gmlen;
+
 typedef struct _GameActor
 {
 	GameObject itself;
 	int hp;
-	int move_speed;
+	int speed;
 	int jump;
 	int dexterity;
 	int strength;
@@ -53,6 +59,41 @@ typedef struct _Entity
 	short invulnerable;
 	short walkthrough;
 }Entity;
+
+union _Convertor
+{
+	struct _GameObject* toGameObject;
+	struct _GameActor* toGameActor;
+
+}Convertor;
+
+GameActor player;
+
+typedef struct _AUX_RGBImageRec
+{
+	GLint sizeX, sizeY;
+	unsigned char *data;
+} AUX_RGBImageRec;
+struct _mainArray
+{
+	AUX_RGBImageRec *main_arr;
+	int length;
+} main_array;
+#define mainArray main_array.main_arr
+
+struct response
+{
+	int id;
+	int x;
+	int y;
+	int width;
+	int height;
+};
+struct _OrderToClear
+{
+	struct response* area;
+	int last_id;
+} OrderToClear;
 struct line
 {
 	long sent_time;
@@ -61,18 +102,17 @@ struct line
 	int frame;
 };
 struct line order[10];
-struct _mainArray
-{
-	AUX_RGBImageRec *main_arr;
-	int length;
-} main_array;
-#define mainArray main_array.main_arr
 enum Animations
 {
 	idle = 0,
-	run = 1,
-	jump = 2,
-	attack01 = 3
+	run0 = 1,
+	run1 = 2,
+	jump = 3,
+	attack01 = 4
 
 };
+unsigned char** TechMap;
+char** StringPool;
+void moveObject(GameObject *object, int key);
+void playerController(int id);
 #endif // !ArboLib
