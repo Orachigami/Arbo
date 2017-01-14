@@ -5,7 +5,7 @@
 #include "Controller.c"
 #include "Physics.c"
 static int length = 0;
-//Добавить в очередь прорисовки кадров
+//Adds the sent frame of object's current animation into the FrameOrder
 void addToOrder(GameObject* object, int frame)
 {
 	static int dozen = 1;
@@ -17,24 +17,22 @@ void addToOrder(GameObject* object, int frame)
 	_line.sent_time = GetTickCount();
 	order[length - 1] = _line;
 }
-//Обновление кадра анимации
+//*Changes the object's current frame on the sent one.
+//If animation doesn't have the sent frame and if the animation isn't looped then nothing adds into the FrameOrder
 void updateSprite(GameObject* object, int frame)
 {
-	if (object->animation[object->current_animation].interrupt == 1)
-	{
-		object->animation[object->current_animation].interrupt = 0;
-		object->busy = 0;
-		return;
-	}
 	object->animation[object->current_animation].frame = mainArray[object->animation[object->current_animation].id].data + mainArray[object->animation[object->current_animation].id].sizeX * mainArray[object->animation[object->current_animation].id].sizeY / object->animation[object->current_animation].frames * 3 * frame;
 	drawObject(object, object->x, object->y);
 	if (++frame != object->animation[object->current_animation].frames)
 		addToOrder(object, frame);
 	else
-		if (object->animation[object->current_animation].loop == 0) object->busy = 0;
+		if (object->animation[object->current_animation].loop == 0)
+		{
+			object->busy = 0;
+		}
 		else addToOrder(object, 0);
 }
-//Удалить из очереди
+//**Removes the frame from the FrameOrder via it's id
 void removeFromOrder(int id)
 {
 	--length;
@@ -42,17 +40,28 @@ void removeFromOrder(int id)
 	for (; i < length; i++)
 		order[i] = order[i + 1];
 }
-void resetAnimation(GameObject* object)
+//Soft animation reset for the sent object
+//Animations such as 'idle' or 'run' should be interruptable by 'jump'
+int resetAnimation(GameObject* object)
 {
 	register int i = 0;
-	for (i; i < length; i++)
-		if (order[i].object == object)
-		{
-			removeFromOrder(i);
-			break;
-		}
+	if (object->animation[object->current_animation].interruptable == 1)
+	{
+		for (i; i < length; i++)
+			if (order[i].object == object)
+			{
+				removeFromOrder(i);
+				break;
+			}
+		return 1;
+	}
+	return 0;
 }
-//Итератор для очереди кадров
+//Global cycle which looks for the frame that should be updated
+//Uses Ticks for checking frame's time
+//If time has come:
+//1. The function requests an update* for the frame
+//2. The function requests the removal** of the frame
 void iterate(int timer_id)
 {
 	register int i = 0;
@@ -68,7 +77,10 @@ void iterate(int timer_id)
 	if (i < 0) i = 0;
 	glutTimerFunc(i, iterate, timer_id);
 }
-//Функция, вызывающая перерисовку текущего кадра анимации
+//Starts the sent id animation cycle for the sent object
+//Just changes the current animation ID;
+//Marks the object as 'busy';
+//Requests the first animation frame's update*
 void playAnimation(GameObject* object, int animation)
 {
 	register int i = 0;
