@@ -9,13 +9,13 @@ static int length = 0;
 void addToOrder(GameObject* object, int frame)
 {
 	static int dozen = 1;
-	struct line _line;
-	if (++length >= dozen * 10) realloc(&order, sizeof(struct line) * 10 * (++dozen));
-	_line.msecs = object->animation[object->current_animation].msecs;
-	_line.frame = frame;
-	_line.object = object;
-	_line.sent_time = GetTickCount();
-	order[length - 1] = _line;
+	struct line* _line = malloc(sizeof(struct line));
+	if (++length >= dozen * 10) realloc(order, sizeof(struct line) * 10 * (++dozen));
+	_line->msecs = object->animation[object->current_animation].msecs;
+	_line->frame = frame;
+	_line->object = object;
+	_line->sent_time = GetTickCount();
+	order[length - 1] = *_line;
 }
 //*Changes the object's current frame on the sent one.
 //If animation doesn't have the sent frame and if the animation isn't looped then nothing adds into the FrameOrder
@@ -35,8 +35,8 @@ void updateSprite(GameObject* object, int frame)
 //**Removes the frame from the FrameOrder via it's id
 void removeFromOrder(int id)
 {
-	--length;
 	register int i = id;
+	--length;
 	for (; i < length; i++)
 		order[i] = order[i + 1];
 }
@@ -73,8 +73,10 @@ void iterate(int timer_id)
 			removeFromOrder(i);
 		}
 	//playerController(0);
-	i = 16 - now;
-	if (i < 0) i = 0;
+	//i = 16 - now;
+	//if (i < 0) i = 0;
+	//else
+	//printf("---------\ANIM: %d\n---------", i);
 	glutTimerFunc(i, iterate, timer_id);
 }
 //Starts the sent id animation cycle for the sent object
