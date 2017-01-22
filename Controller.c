@@ -8,25 +8,27 @@
 int status = 0;
 void mouseMove(int x, int y) 
 {
-	if (status == 1) {
-
-		TechMap[x][600 - y] = 1;
-		memcpy(image->data + ((600 - y) * mainArray->sizeX + x) * 3, pixel, 3);
+	if (status == 1 && x >= 0 && y >= 0) {
+		grass.itself.animation[0].frame[((599 - y) * 800 + x) * 3] = pixel;
+		TechMap[x][599 - y] = 1;
+		//memcpy(image->data + ((600 - y) * mainArray->sizeX + x) * 3, pixel, 3);
 	}
 }
 void mouseButton(int button, int state, int x, int y)
 {
-	if (button == GLUT_LEFT_BUTTON)
+	if (button == GLUT_LEFT_BUTTON && x >= 0 && y >= 0)
 	{
-
-		if (state == GLUT_UP) {
-			;
+		if (state == GLUT_UP) 
+		{
+			status = 0;
 		}
 		else 
 		{
 			status = 1;
-			TechMap[x][600-y] = 1;
-			memcpy(image->data + ((600-y) * mainArray->sizeX + x) * 3, pixel, 3);
+			grass.itself.animation[0].frame[((599 - y) * 800 + x) * 3] = pixel;
+			TechMap[x][599-y] = 1;
+			playAnimation(&grass.itself, 0);
+			//memcpy(image->data + ((600-y) * mainArray->sizeX + x) * 3, pixel, 3);
 		}
 	}
 }
@@ -54,7 +56,7 @@ void moveObject(union _Convertor obj, int key)
 		oldx = object->x;
 		oldy = object->y;
 		object->vector = 1;
-		overStep(object, 15);
+		overStep(object, 5);
 		drawObject(object, oldx, oldy);
 		break;
 	case 2:
@@ -88,36 +90,44 @@ void playerController(int id)
 {
 	static char status = 0;
 	Convertor.toGameActor = &player;
-	//printf("w");
-	status = 0;
-	if (GetAsyncKeyState(VK_RIGHT))
+	if (!player.stunned)
 	{
-		if (player.itself.current_animation != run1)
+		status = 0;
+		if (GetAsyncKeyState(VK_RIGHT))
 		{
-			resetAnimation(&player);
-			player.itself.busy = 0;
-			playAnimation(&player, run1);
+			if (player.itself.current_animation != run1)
+			{
+				if (resetAnimation(&player.itself))
+				{
+					player.itself.busy = 0;
+					player.itself.current_animation = run1;
+				}
+				playAnimation(&player.itself, run1);
+			}
+			moveObject(Convertor, 1);
+			status = 1;
+			//times++;
 		}
-		moveObject(Convertor, 1);
-		status = 1;
-	}
-	else
-	if (GetAsyncKeyState(VK_LEFT))
-	{
-		if (player.itself.current_animation != run0)
-		{
-			resetAnimation(&player);
-			player.itself.busy = 0;
-            playAnimation(&player, run0);
-		}
-		moveObject(Convertor, 0);
-		status = 1;
-	}
+		else
+			if (GetAsyncKeyState(VK_LEFT))
+			{
+				if (player.itself.current_animation != run0)
+				{
+					if (resetAnimation(&player.itself))
+					{
+						player.itself.busy = 0;
+						player.itself.current_animation = run0;
+					}
+					playAnimation(&player, run0);
+				}
+				moveObject(Convertor, 0);
+				status = 1;
+			}
 
-		if (GetAsyncKeyState(VK_UP))
+		if (GetAsyncKeyState(VK_UP))// && player.itself.air_state == 0)
 		{
 			player.itself.air_state = 1;
-			moveObject(Convertor, 2);
+			Jump(Convertor);
 			status = 1;
 		}
 		else if (player.itself.air_state == 1) player.itself.air_state = 2;
@@ -127,16 +137,21 @@ void playerController(int id)
 			status = 1;
 		}
 		//if (GetAsyncKeyState(VK_DOWN)) moveObject(player, 3);
+		moveObject(Convertor, 3);
+	}
 		if (status == 0)
 		{
 			if (player.itself.current_animation != idle)
 			{
-				resetAnimation(&player);
-				player.itself.busy = 0;
+				if (resetAnimation(&player.itself))
+				{
+					player.itself.busy = 0;
+					player.itself.current_animation = idle;
+				}
 				playAnimation(&player, idle);
 			}
 		}
-		moveObject(Convertor, 3);
+	
 		glutTimerFunc(50, playerController, id);
 }
 #endif // !_CONTROLLER_C
