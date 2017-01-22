@@ -77,6 +77,14 @@ int isOnGround(GameObject* object, int doFall)
 	}
 	return code;
 }
+//Updates action's current stage time and adds action row into the Queue
+void addToQueue(struct row* subject)
+{
+	static int dozen = 1;
+	if (++action_length >= dozen * 10) realloc(queue, sizeof(struct row) * 10 * (++dozen));
+	subject->sent_time = GetTickCount();
+	queue[action_length - 1] = *subject;
+}
 //Maths jump logic
 void jumpProceed(struct row* subject)
 {
@@ -122,14 +130,6 @@ void Jump(union _Convertor obj)
 	startJump->help1 = object->x;
 	startJump->help2 = object->y;
 	addToQueue(startJump);
-}
-//Updates action's current stage time and adds action row into the Queue
-void addToQueue(struct row* subject)
-{
-	static int dozen = 1;
-	if (++action_length >= dozen * 10) realloc(queue, sizeof(struct row) * 10 * (++dozen));
-	subject->sent_time = GetTickCount();
-	queue[action_length - 1] = *subject;
 }
 //**Removes the action from the ActionQueue via it's id
 void removeFromQueue(int id)
