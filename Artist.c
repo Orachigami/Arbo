@@ -6,7 +6,8 @@
 AUX_RGBImageRec* image;
 
 int last_id = 0;
-
+//Checks whether two areas are crossing each other
+//Returns the cross-area
 struct response checkCrossing(struct response* object, GameObject* checked_object)
 {
 	int id1 = object->id,
@@ -51,7 +52,7 @@ struct response checkCrossing(struct response* object, GameObject* checked_objec
 	_response.height = -1;
 	return _response;
 }
-
+//Draws the sent AREA for the Object with the sent ID
 int drawArea(struct response _response, int id)
 {
 	int y = 0,
@@ -71,6 +72,8 @@ int drawArea(struct response _response, int id)
 	}
 	return 0;
 }
+//Clears the object's previous location, then
+//Redraws object completely
 void drawObject(GameObject* object, int oldx, int oldy)
 {
 	struct response _response,
