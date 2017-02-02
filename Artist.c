@@ -6,117 +6,167 @@
 AUX_RGBImageRec* image;
 
 int last_id = 0;
-//Checks whether two areas are crossing each other
-//Returns the cross-area
-struct response checkCrossing(struct response* object, GameObject* checked_object)
+/*Checks whether two areas are crossing each other*/
+/*Returns the cross-area*/
+struct Area checkCrossing(struct Area* object, GameObject* next_object)
 {
 	int id1 = object->id,
-		id2 = checked_object->animation[checked_object->current_animation].id,
+		id2 = next_object->animation[next_object->current_animation].id,
 		height1 = object->height,
-		height2 = mainArray[id2].sizeY / checked_object->animation[checked_object->current_animation].frames;
-	struct response _response;
-	if (object->x <= checked_object->x && object->x + object->width > checked_object->x)
+		height2 = next_object->animation[next_object->current_animation].height;
+	struct Area area;
+	if (object->x <= next_object->x && object->x + object->width > next_object->x)
 	{
-		_response.x = checked_object->x;
-		_response.width = (object->x + object->width > _response.x + mainArray[id2].sizeX) ? mainArray[id2].sizeX : object->x + object->width - _response.x;
-		if (object->y <= checked_object->y && object->y + height1 > checked_object->y)
+		area.x = next_object->x;
+		area.width = (object->x + object->width > area.x + mainArray[id2].sizeX) ? mainArray[id2].sizeX : object->x + object->width - area.x;
+		if (object->y <= next_object->y && object->y + height1 > next_object->y)
 		{
-			_response.y = checked_object->y;
-			_response.height = (object->y + height1 > _response.y + height2) ? height2 : object->y + height1 - _response.y;
-			return _response;
+			area.y = next_object->y;
+			area.height = (object->y + height1 > area.y + height2) ? height2 : object->y + height1 - area.y;
+			return area;
 		}
-		if (object->y > checked_object->y && checked_object->y + height2 > object->y)
+		if (object->y > next_object->y && next_object->y + height2 > object->y)
 		{
-			_response.y = object->y;
-			_response.height = (checked_object->y + height2 > _response.y + height1) ? height1 : checked_object->y + height2 - _response.y;
-			return _response;
+			area.y = object->y;
+			area.height = (next_object->y + height2 > area.y + height1) ? height1 : next_object->y + height2 - area.y;
+			return area;
 		}
 	}
-	if (object->x > checked_object->x && checked_object->x + mainArray[id2].sizeX >= object->x)
+	if (object->x > next_object->x && next_object->x + mainArray[id2].sizeX >= object->x)
 	{
-		_response.x = object->x;
-		_response.width = (checked_object->x + mainArray[id2].sizeX > _response.x + object->width) ? object->width : checked_object->x + mainArray[id2].sizeX - _response.x;
-		if (object->y <= checked_object->y && object->y + height1 > checked_object->y)
+		area.x = object->x;
+		area.width = (next_object->x + mainArray[id2].sizeX > area.x + object->width) ? object->width : next_object->x + mainArray[id2].sizeX - area.x;
+		if (object->y <= next_object->y && object->y + height1 > next_object->y)
 		{
-			_response.y = checked_object->y;
-			_response.height = (object->y + height1 > _response.y + height2) ? height2 : object->y + height1 - _response.y;
-			return _response;
+			area.y = next_object->y;
+			area.height = (object->y + height1 > area.y + height2) ? height2 : object->y + height1 - area.y;
+			return area;
 		}
-		if (object->y > checked_object->y && checked_object->y + height2 > object->y)
+		if (object->y > next_object->y && next_object->y + height2 > object->y)
 		{
-			_response.y = object->y;
-			_response.height = (checked_object->y + height2 > _response.y + height1) ? height1 : checked_object->y + height2 - _response.y;
-			return _response;
+			area.y = object->y;
+			area.height = (next_object->y + height2 > area.y + height1) ? height1 : next_object->y + height2 - area.y;
+			return area;
 		}
 	}
-	_response.height = -1;
-	return _response;
+	area.height = -1;
+	return area;
 }
-//Draws the sent AREA for the Object with the sent ID
-int drawArea(struct response _response, int id)
+void Camera(int id)
+{
+	static prev_x = 75,
+		prev_y = 110;
+	int i = 0;
+	if (player.itself.x == prev_x && player.itself.y == prev_y)
+		glutTimerFunc(50, Camera, id);
+	//for (i = 0; i < 600; i++)
+	//	memcpy(GameObjects[0]->animation[0].frame + i * 800 * 3, mainArray->data + (i* mainArray->sizeX + player.itself.x) * 3, 2400);
+	prev_x = player.itself.x;
+	prev_y = player.itself.y;
+	glutTimerFunc(50, Camera, id);
+}
+
+/*Draws the sent AREA for the Object with the sent ID*/
+static int drawArea(struct Area area, int id)
 {
 	int y = 0,
 		x = 0,
-		width = mainArray[GameObjects[id]->animation[GameObjects[id]->current_animation].id].sizeX,
-		offset = (_response.y + y - GameObjects[id]->y)*width + _response.x - GameObjects[id]->x;
-
+		width = 0,
+		offset = 0;
+	//if (id == 0) width = 800;
+	width = GameObjects[id]->animation[GameObjects[id]->current_animation].width;
+	offset = (area.y - GameObjects[id]->y)*width + area.x - GameObjects[id]->x;
+	area.x -= FL;
+	if (id != 2)
+	{
+		if (area.x < 800)
+		{
+			if (area.x >= 0)
+			{
+				if (area.x + area.width > 800) area.width = 800 - area.x;
+			}
+			else
+				if (area.x + area.width > 0)
+				{
+					if (id != 0 && id != 4) area.width = area.x + area.width;
+					area.x = 0;
+					if (area.x + area.width > 800) area.width = 800;
+				}
+				else
+					return 1;
+		}
+		else 
+			return 1;
+	}
+	if (CameraTarget != 0 && CameraLocked == 1 && area.id == CameraTarget && FR != 3200 && GameObjects[CameraTarget]->x >= 120)
+	{
+		area.x = 120;
+		area.width = 120;
+		offset = 0;
+	}
+	if ((area.id == 0 || area.id == 4) && offset != 0)
+		offset = (area.y)*width + area.x;
 	offset -= width;
-	for (y = 0; y < _response.height; y++)
+	for (y = 0; y < area.height; y++)
 	{
 		offset += width;
-		for (x = 0; x < _response.width; x++)
+		for (x = 0; x < area.width; x++)
 		{
 			if (GameObjects[id]->animation[GameObjects[id]->current_animation].frame[(offset + x) * 3] != 255 || GameObjects[id]->animation[GameObjects[id]->current_animation].frame[(offset + x) * 3 + 1] != 0 || GameObjects[id]->animation[GameObjects[id]->current_animation].frame[(offset + x) * 3 + 2] != 0)
-				memcpy(image->data + ((_response.y + y) * image->sizeX + _response.x + x) * 3, GameObjects[id]->animation[GameObjects[id]->current_animation].frame + (offset + x) * 3, 3);
+				memcpy(image->data + ((area.y + y) * image->sizeX + area.x + x) * 3, GameObjects[id]->animation[GameObjects[id]->current_animation].frame + (offset + x) * 3, 3);
 		}
 	}
 	return 0;
 }
-//Clears the object's previous location, then
-//Redraws object completely
+/*Clears the object's previous location, then*/
+/*Redraws object completely*/
 void drawObject(GameObject* object, int oldx, int oldy)
 {
-	struct response _response,
+	struct Area area,
 		original_area,
-		excluded_area;
-	static int busy = 0;
-	GameObject* checked_object;
+		extended_area;
+	GameObject* next_object;
 	int delta_x = object->x - oldx,
 		delta_y = object->y - oldy;
-	int id = object->animation[object->current_animation].id, 
-		real_Height = (mainArray + id)->sizeY / object->animation[object->current_animation].frames, 
+	int id = object->animation[object->current_animation].id,
+		width = object->animation[object->current_animation].width,
+		height = object->animation[object->current_animation].height,
 		tmp1;
-	register int i = 0,
-		g = 0,
-		k = 0;
-	for (i = 0; i < real_Height; i++)
+	register int i = 0;
+	/*for (i = 0; i < height; i++)
 	{
-		tmp1 = ((i + oldy) * image->sizeX + oldx) * 3;
-		memcpy(image->data + tmp1, (mainArray)->data + tmp1, 3 * (mainArray + id)->sizeX);
-	}
-	excluded_area.id = id;
-	excluded_area.width = (delta_x < 0) ? -delta_x + (mainArray + id)->sizeX : delta_x + (mainArray + id)->sizeX;
-	excluded_area.height = (delta_y < 0) ? -delta_y + real_Height : delta_y + real_Height;
-	excluded_area.x = (delta_x < 0) ? object->x : oldx;
-	excluded_area.y = (delta_y < 0) ? object->y : oldy;
+		tmp1 = ((i + oldy) * image->sizeX + (oldx)) * 3;
+		memcpy(image->data + tmp1, (mainArray)->data + tmp1, 3 * width);
+	}*/
+	extended_area.id = id;
+	extended_area.width = (delta_x < 0) ? -delta_x + width : delta_x + width;
+	extended_area.height = (delta_y < 0) ? -delta_y + height : delta_y + height;
+	extended_area.x = (delta_x < 0) ? object->x : oldx;
+	extended_area.y = (delta_y < 0) ? object->y : oldy;
 
 	original_area.id = id;
-	original_area.width = (mainArray + id)->sizeX;
-	original_area.height = real_Height;
+	original_area.width = width;
+	original_area.height = height;
 	original_area.x = object->x;
 	original_area.y = object->y;
-	//OrderToClear.area[++OrderToClear.last_id] = original_area;
+	/*area.id = 0;
+	area.width = width;
+	area.height = height;
+	area.x = object->x;
+	area.y = object->y;*/
+	//OrderToClear.area[++OrderToClear.last_id] = area;
 	for (i = 0; i < gmlen; i++)
 	{
-		checked_object = GameObjects[i];
-		if (object != checked_object)
-			_response = checkCrossing(&excluded_area, checked_object); 
-		else 
-			_response = checkCrossing(&original_area, checked_object);
-		if (_response.height != -1)
+		next_object = GameObjects[i];
+
+		if (object != next_object)
+			area = checkCrossing(&extended_area, next_object);
+		else
+			area = checkCrossing(&original_area, next_object);
+		if (area.height != -1)
 		{
-			_response.id = i;
-			OrderToClear.area[++OrderToClear.last_id] = _response;
+			area.id = i;
+			OrderToClear.area[++OrderToClear.last_id] = area;
 		}
 	}
 	for (i = 0; i <= OrderToClear.last_id; i++)
@@ -124,4 +174,4 @@ void drawObject(GameObject* object, int oldx, int oldy)
 	OrderToClear.last_id = -1;
 	glutPostRedisplay();
 }
-#endif // !ARTIST_C
+#endif /* !ARTIST_C*/
