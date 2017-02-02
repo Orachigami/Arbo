@@ -4,19 +4,38 @@
 #include "Controller.c"
 #include "Animator.c"
 #include <math.h>
-//FALL
-//JUMP
-//Action queue length
+/*FALL*/
+/*JUMP*/
+/*Action queue length*/
 static int action_length = 0;
 
-//OVERSTEP
+/*OVERSTEP*/
 
-//Movement logic/behaviour for overstepping blocks
+/*Movement logic/behaviour for overstepping blocks*/
 void overStep(GameObject* object, int adm)
 {
-	int x = 0, y = 0, current_x = object->x,
-		speed = 10 * object->vector;
-	if (object->vector < 0)
+	int x = object->vector == 1 ? object->rx : object->lx, y = 0, //current_x = object->x,
+		speed = x + object->speed * object->vector;
+	if (object->x + speed < 0)
+	{
+		object->x = 0;
+		return;
+	}
+	for (y = 0; y < 5 && x != speed && y > -object->weight; y++)
+	{
+		for (x = x; x != speed; x += object->vector)
+		{
+			if (TechMap[object->x + x][object->y + y] == 1) break;
+			if (TechMap[object->x + x][object->y + y - 1] != 1) y--;
+			object->x += object->vector;
+		}
+	}
+	object->y += y;
+
+
+
+
+	/*if (object->vector < 0)
 	{
 		current_x += object->lx;
 		for (; (y != adm) && (x != speed);)
@@ -35,9 +54,9 @@ void overStep(GameObject* object, int adm)
 		}
 	}
 	object->x += x;
-	object->y += y;
+	object->y += y;*/
 }
-//Tests the "roof" above the game object
+/*Tests the "roof" above the game object*/
 int isNearRoof(GameObject* object)
 {
 	int realHeight = mainArray[object->animation[object->current_animation].id].sizeY / object->animation[object->current_animation].frames,
@@ -51,25 +70,19 @@ int isNearRoof(GameObject* object)
 
 	return 0;
 }
-//Tests the ground under the game object
-//*Uses TechMap: 1 - wall/ground, 0 - air
+/*Tests the ground under the game object*/
+/**Uses TechMap: 1 - wall/ground, 0 - air*/
 int isOnGround(GameObject* object, int doFall)
 {
 	int current_x = object->x, code = 1, y = 0;
-	if (object->vector == -1)
+	if (TechMap[current_x + object->lx][object->y - 1] == 0 && TechMap[current_x + object->rx][object->y - 1] == 0 && TechMap[current_x + object->cx][object->y - 1] == 0)
 	{
-		current_x += object->lx;
-		if (TechMap[current_x][object->y - 1] == 0) object->air_state = 2;
+		object->air_state = 2;
+		code = 0;
 	}
-	else
-	{
-		current_x += object->rx;
-		if (TechMap[current_x][object->y - 1] == 0) object->air_state = 2;
-	}
-	if (object->air_state == 2 && TechMap[current_x][object->y - 1] == 0) code = 0;
 	if (doFall)
 	{
-		for (; TechMap[object->x + object->lx + 1][object->y + y - 1] != 1 && TechMap[object->x + object->rx - 1][object->y + y - 1] != 1 && TechMap[object->x + object->animation[object->current_animation].height / 2][object->y + y - 1] != 1 && -y != object->weight;)
+		for (; TechMap[current_x + object->lx][object->y + y] != 1 && TechMap[current_x + object->cx][object->y + y] != 1 && TechMap[current_x + object->rx][object->y + y] != 1 && y > -object->weight;)
 		{
 			y--;
 		}
@@ -77,7 +90,7 @@ int isOnGround(GameObject* object, int doFall)
 	}
 	return code;
 }
-//Updates action's current stage time and adds action row into the Queue
+/*Updates action's current stage time and adds action row into the Queue*/
 void addToQueue(struct row* subject)
 {
 	static int dozen = 1;
@@ -85,7 +98,53 @@ void addToQueue(struct row* subject)
 	subject->sent_time = GetTickCount();
 	queue[action_length - 1] = *subject;
 }
-//Maths jump logic
+
+/*Camera movement logic*/
+void cameraProceed(struct row* CameraVector)
+{
+	int i, _continue = 1;
+	FL += CameraVector->step;
+	FR += CameraVector->step;
+	if (FL < 0)
+	{
+		FL = 0;
+		FR = 800;
+		CameraLocked = 1;
+		_continue--;
+	}
+	if (FR > 3200)
+	{
+		FL = 3200 - 800;
+		FR = 3200;
+		CameraLocked = 1;
+		_continue--;
+	}
+	if (GameObjects[CameraVector->help1]->x - FL - 120 < 10 && GameObjects[CameraVector->help1]->x - FL - 120 > -10)
+	{
+		_continue--;
+		CameraLocked = 1;
+	}
+	for (i = 0; i < 600; i++)
+	{
+		memcpy(BACKGROUND.animation[0].frame + i * 800 * 3, mainArray->data + (i* mainArray->sizeX + FL) * 3, 2400);
+		memcpy(FOREGROUND.animation[0].frame + i * 800 * 3, (mainArray + FOREGROUND.animation->id)->data + (i* (mainArray + FOREGROUND.animation->id)->sizeX + FL) * 3, 2400);
+	}
+	if (_continue) addToQueue(CameraVector);
+}
+/*Get camera focus*/
+void GetCameraFocus(int GameObjectID)
+{
+	struct row* CameraVector;
+	if (GameObjectID >= gmlen || FL + 120 == GameObjects[GameObjectID]->x) return;
+	CameraVector = malloc(sizeof(struct row));
+	if (FL < GameObjects[GameObjectID]->x) CameraVector->step = 10;
+	else CameraVector->step = -10;
+	CameraVector->msecs = 50;
+	CameraVector->todo = cameraProceed;
+	CameraVector->help1 = GameObjectID;
+	addToQueue(CameraVector);
+}
+/*Maths jump logic*/
 void jumpProceed(struct row* subject)
 {
 	int step = subject->step;
@@ -97,41 +156,54 @@ void jumpProceed(struct row* subject)
 	obj.toGameObject = subject->object;
 	actor = obj.toGameActor;
 	object = obj.toGameObject;
-	object->x += actor->speed*object->vector;
-	object->y = -1* pow((object->x - actor->speed*sqrt(actor->jump)*object->vector - subject->help1)/actor->speed,2) + actor->jump + subject->help2;
-	//printf("X: %d; Y: %d;\n", object->x, object->y);
-	drawObject(object, x, y);
-	subject->step++;
-	if (isOnGround(object, 0))
+	for (y = 0;; y+= actor->jump-step)
 	{
-		actor->stunned = 0;
-		return;
+		if (isOnGround(object, 0) && y!=0)
+		{
+			object->y += y;
+			object->x += x;
+			actor->stunned = 0;
+			return;
+		}
+		for (x = object->vector; x != (actor->jump-1)*object->vector; x+= object->vector)
+		{
+			if (TechMap[object->x + object->lx + x][object->y + y] == 1 || TechMap[object->x + object->rx + x][object->y + y] == 1)
+			{
+				object->y += y;
+				object->x += x;
+				actor->stunned = 0;
+				return;
+			}
+		}
 	}
+	subject->step -= 1;
+	object->y += y;
+	object->x += x;
+	drawObject(object, object->x - x, object->y - y);
 	addToQueue(subject);
 }
-//Initializates action row for the "Jump" action
+/*Initializates action row for the "Jump" action*/
 void Jump(union _Convertor obj)
 {
 	struct row* startJump = malloc(sizeof(struct row));
 	GameActor* actor = obj.toGameActor;
 	GameObject* object = obj.toGameObject;
+	int state = object->vector == -1 ? jump0 : jump1;
 	actor->stunned++;
 	if (resetAnimation(obj.toGameObject))
 	{
 		actor->itself.busy = 0;
-		object->current_animation = jump0;
+		object->current_animation = state;
 	}
-	//playAnimation(object, jump0);
+	playAnimation(object, state);
 	startJump->object = object;
 	startJump->todo = jumpProceed;
 	startJump->step = 0;
 	startJump->sent_time = GetTickCount();
 	startJump->msecs = 50;
-	startJump->help1 = object->x;
-	startJump->help2 = object->y;
 	addToQueue(startJump);
 }
-//**Removes the action from the ActionQueue via it's id
+/***Removes the action from the ActionQueue via it's id*/
 void removeFromQueue(int id)
 {
 	register int i = id;
@@ -141,10 +213,10 @@ void removeFromQueue(int id)
 	for (; i < action_length; i++)
 		queue[i] = queue[i + 1];
 }
-//Global cycle which looks for the action that should be updated
-//Uses Ticks for checking action's time
-//P.S. mb concatenate with animatior.c "iterate" or/and player controller
-void iterator(int timer_id)
+/*Global cycle which looks for the action that should be updated*/
+/*Uses Ticks for checking action's time*/
+/*P.S. mb concatenate with animatior.c "iterate" or/and player controller*/
+static void iterator(int timer_id)
 {
 	register int i = 0;
 	register long now = GetTickCount();
@@ -154,10 +226,6 @@ void iterator(int timer_id)
 			queue[i].todo(&queue[i]);
 			removeFromQueue(i);
 		}
-	//i = GetTickCount() - now - 16;
-	//if (i <= 0) i = 0;
-	//else
-	//printf("---------\nACTION: %d\n---------", i);
 	glutTimerFunc(i, iterator, timer_id);
 }
-#endif // !PHYSICS_C
+#endif /* !PHYSICS_C*/
