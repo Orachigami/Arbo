@@ -4,8 +4,6 @@
 #include "Controller.c"
 #include "Animator.c"
 #include <math.h>
-/*FALL*/
-/*JUMP*/
 /*Action queue length*/
 static int action_length = 0;
 
@@ -31,30 +29,6 @@ void overStep(GameObject* object, int adm)
 		}
 	}
 	object->y += y;
-
-
-
-
-	/*if (object->vector < 0)
-	{
-		current_x += object->lx;
-		for (; (y != adm) && (x != speed);)
-		{
-			if (TechMap[current_x + x][object->y + y] == 1) y++;
-			else x--;
-		}
-	}
-	else
-	{
-		current_x += object->rx;
-		for (; (y != adm) && (x != speed);)
-		{
-			if (TechMap[current_x + x][object->y + y] == 1) y++;
-			else x++;
-		}
-	}
-	object->x += x;
-	object->y += y;*/
 }
 /*Tests the "roof" above the game object*/
 int isNearRoof(GameObject* object)
@@ -98,11 +72,18 @@ void addToQueue(struct row* subject)
 	subject->sent_time = GetTickCount();
 	queue[action_length - 1] = *subject;
 }
-
+/***Removes the action from the ActionQueue via it's id*/
+void removeFromQueue(int id)
+{
+	register int i = id;
+	--action_length;
+	for (; i < action_length; i++)
+		queue[i] = queue[i + 1];
+}
 /*Camera movement logic*/
 void cameraProceed(struct row* CameraVector)
 {
-	int i, _continue = 1;
+	int _continue = 1;
 	FL += CameraVector->step;
 	FR += CameraVector->step;
 	if (FL < 0)
@@ -110,26 +91,25 @@ void cameraProceed(struct row* CameraVector)
 		FL = 0;
 		FR = 800;
 		CameraLocked = 1;
-		_continue--;
+		_continue = 0;
 	}
 	if (FR > 3200)
 	{
 		FL = 3200 - 800;
 		FR = 3200;
 		CameraLocked = 1;
-		_continue--;
+		_continue = 0;
 	}
-	if (GameObjects[CameraVector->help1]->x - FL - 120 < 10 && GameObjects[CameraVector->help1]->x - FL - 120 > -10)
+	if ((GameObjects[CameraVector->help1]->x - FL - 120 < 10) && (GameObjects[CameraVector->help1]->x - FL - 120 > -10))
 	{
-		_continue--;
+		_continue = 0;
 		CameraLocked = 1;
 	}
-	for (i = 0; i < 600; i++)
-	{
-		memcpy(BACKGROUND.animation[0].frame + i * 800 * 3, mainArray->data + (i* mainArray->sizeX + FL) * 3, 2400);
-		memcpy(FOREGROUND.animation[0].frame + i * 800 * 3, (mainArray + FOREGROUND.animation->id)->data + (i* (mainArray + FOREGROUND.animation->id)->sizeX + FL) * 3, 2400);
-	}
+	BACKGROUND.animation[BACKGROUND.current_animation].frame = mainArray[BACKGROUND.animation[BACKGROUND.current_animation].id].data + FL * 3;
+	FOREGROUND.animation[FOREGROUND.current_animation].frame = mainArray[FOREGROUND.animation[FOREGROUND.current_animation].id].data + FL * 3;
+	drawObject(&BACKGROUND, 0, 0);
 	if (_continue) addToQueue(CameraVector);
+	else removeFromQueue(0);
 }
 /*Get camera focus*/
 void GetCameraFocus(int GameObjectID)
@@ -203,16 +183,6 @@ void Jump(union _Convertor obj)
 	startJump->msecs = 50;
 	addToQueue(startJump);
 }
-/***Removes the action from the ActionQueue via it's id*/
-void removeFromQueue(int id)
-{
-	register int i = id;
-	union _Convertor obj;
-	obj.toGameObject = queue[id].object;
-	--action_length;
-	for (; i < action_length; i++)
-		queue[i] = queue[i + 1];
-}
 /*Global cycle which looks for the action that should be updated*/
 /*Uses Ticks for checking action's time*/
 /*P.S. mb concatenate with animatior.c "iterate" or/and player controller*/
@@ -226,6 +196,6 @@ static void iterator(int timer_id)
 			queue[i].todo(&queue[i]);
 			removeFromQueue(i);
 		}
-	glutTimerFunc(i, iterator, timer_id);
+	glutTimerFunc(0, iterator, timer_id);
 }
 #endif /* !PHYSICS_C*/
