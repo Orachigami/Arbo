@@ -7,59 +7,47 @@
 
 static const char* HOME = "C:\\!ARBO\\";
 typedef unsigned short WORD;
+#pragma pack(push, 2)
 typedef struct _BMPheader
 {
-	WORD   bfType;         // 0x4d42 | 0x4349 | 0x5450
-	int    bfSize;         // размер файла
-	int    bfReserved;     // 0
-	int    bfOffBits;      // смещение до поля данных,
-						   // обычно 54 = 16 + biSize
-	int    biSize;         // размер струкуры в байтах:
-						   // 40(BITMAPINFOHEADER) или 108(BITMAPV4HEADER)
-						   // или 124(BITMAPV5HEADER)
-	int    biWidth;        // ширина в точках
-	int    biHeight;       // высота в точках
-	WORD   biPlanes;       // всегда должно быть 1
-	WORD   biBitCount;     // 0 | 1 | 4 | 8 | 16 | 24 | 32
-	int    biCompression;  // BI_RGB | BI_RLE8 | BI_RLE4 |
-						   // BI_BITFIELDS | BI_JPEG | BI_PNG
-						   // реально используется лишь BI_RGB
-	int    biSizeImage;    // Количество байт в поле данных
-						   // Обычно устанавливается в 0
-	int    biXPelsPerMeter;// горизонтальное разрешение, точек на дюйм
-	int    biYPelsPerMeter;// вертикальное разрешение, точек на дюйм
-	int    biClrUsed;      // Количество используемых цветов
-						   // (если есть таблица цветов)
-	int    biClrImportant; // Количество существенных цветов.
-						   // Можно считать, просто 0
+	WORD   bfType;         /* Signature: 0x4d42 | 0x4349 | 0x5450*/
+	int    bfSize;         /* File size*/
+	int    bfReserved;     /* Always 0*/
+	int    bfOffBits;      /* Offset to the data*/
+						   /* Usually 54 = 16 + biSize*/
+	int    biSize;         /* Structure size:*/
+						   /* 40(BITMAPINFOHEADER) or 108(BITMAPV4HEADER)*/
+						   /* or 124(BITMAPV5HEADER)*/
+	int    biWidth;        /* Width*/
+	int    biHeight;       /* Height*/
+	WORD   biPlanes;       /* Always 1*/
+	WORD   biBitCount;     /* 0 | 1 | 4 | 8 | 16 | 24 | 32*/
+	int    biCompression;  /* BI_RGB | BI_RLE8 | BI_RLE4 |*/
+						   /* BI_BITFIELDS | BI_JPEG | BI_PNG*/
+						   /* The most common is BI_RGB*/
+	int    biSizeImage;    /* Image data byte count*/
+						   /* Usually 0*/
+	int    biXPelsPerMeter;/* horizontal resolution*/
+	int    biYPelsPerMeter;/* vertical resolution*/
+	int    biClrUsed;      /* Amount of colors used*/
+						   /* (if color table used)*/
+	int    biClrImportant; /* Amount of important colors.*/
+						   /* Usually 0*/
 }BMPheader;
+#pragma pack(pop)
 char *loadBMP(struct _AUX_RGBImageRec* img, const char* path)
 {
 	int row_leng, my;
 	FILE *f = fopen(path, "rb");
 	if (!f) return NULL;
 	BMPheader bh;
-	fread(&bh.bfType, 1, sizeof(unsigned short int), f);
-	fread(&bh.bfSize, 1, sizeof(unsigned int), f);
-	fread(&bh.bfReserved, 1, sizeof(unsigned int), f);
-	fread(&bh.bfOffBits, 1, sizeof(unsigned int), f);
-	fread(&bh.biSize, 1, sizeof(unsigned int), f);
-	fread(&bh.biWidth, 1, sizeof(unsigned int), f);
-	fread(&bh.biHeight, 1, sizeof(unsigned int), f);
-	fread(&bh.biPlanes, 1, sizeof(unsigned short int), f);
-	fread(&bh.biBitCount, 1, sizeof(unsigned short int), f);
-	fread(&bh.biCompression, 1, sizeof(unsigned int), f);
-	fread(&bh.biSizeImage, 1, sizeof(unsigned int), f);
-	fread(&bh.biXPelsPerMeter, 1, sizeof(unsigned int), f);
-	fread(&bh.biYPelsPerMeter, 1, sizeof(unsigned int), f);
-	fread(&bh.biClrUsed, 1, sizeof(unsigned int), f);
-	fread(&bh.biClrImportant, 1, sizeof(unsigned int), f);
-	// проверяем сигнатуру
+	fread(&bh, sizeof(bh), 1, f);
+	/* проверяем сигнатуру*/
 	if (bh.bfType != 0x4d42 && bh.bfType != 0x4349 && bh.bfType != 0x5450) { fclose(f); return NULL; }
 
-	// восстановим указатель в файле:
-	fseek(f, sizeof(BMPheader) - 2, SEEK_SET);
-	// проверим условия
+	/* восстановим указатель в файле:*/
+	fseek(f, sizeof(BMPheader), SEEK_SET);
+	/* проверим условия*/
 	if (bh.bfReserved != 0 ||
 		bh.biPlanes != 1 ||
 		(bh.biSize != 40 && bh.biSize != 108 && bh.biSize != 124) ||
@@ -97,7 +85,6 @@ char *loadBMP(struct _AUX_RGBImageRec* img, const char* path)
 		fseek(f, sizeof(char) * skip, SEEK_CUR);
 	}
 	fclose(f);
-
 	return tmp_buf;
 }
 
@@ -119,23 +106,23 @@ void loadNewImage(char* name)
 
 void saveData()
 {
-	int i = 0, g;
+	int i = 0;
 	char len;
 	FILE* datafile = fopen("C:\\!ARBO\\data.bin", "wb");
 	fwrite(&gmlen, sizeof(int), 1, datafile);
-	for (i = 0; StringPool[i] != "//" && i < 99; i++)
+	for (i = 0; StringPool[i] != "/*" && i < 99; i++)
 	{
-		len = strlen(StringPool[i]);
+		len = (char)strlen(StringPool[i]);
 		fwrite(&len, sizeof(char), 1, datafile);
 		fputs(StringPool[i], datafile);
-		//fputc('\0', datafile);
+		/*fputc('\0', datafile);*/
 	}
 	fputc('\0', datafile);
 
 	for (i = 0; i < gmlen; i++)
 	{
 		fwrite(&GameObjects[i]->busy, sizeof(unsigned char), 3, datafile);
-		//for (g = 0; g < GameObjects[i]->animations; g++)
+		/*for (g = 0; g < GameObjects[i]->animations; g++)*/
 		fwrite(GameObjects[i]->animation, sizeof(struct model), GameObjects[i]->animations, datafile);
 
 		fwrite(&GameObjects[i]->x, sizeof(int), 5, datafile);
@@ -192,4 +179,4 @@ void readData()
 	fclose(datafile);
 }
 
-#endif // !RESOURCEMANAGER_C
+#endif /* !RESOURCEMANAGER_C*/
