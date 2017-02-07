@@ -10,7 +10,7 @@ int oooo = 0;
 void mouseMove(int x, int y) 
 {
 	if (status == 1 && x >= 0 && y >= 0) {
-		grass.itself.animation[0].frame[((599 - y) * 800 + x) * 3] = pixel;
+		//grass.itself.animation[0].frame[((599 - y) * 800 + x) * 3] = pixel;
 		TechMap[x][599 - y] = 1;
 		memcpy(image->data + ((600 - y) * image->sizeX + x) * 3, pixel, 3);
 	}
@@ -30,10 +30,11 @@ void mouseButton(int button, int state, int x, int y)
 			
 			for (int i = 0; i < 599 - y; i++)
 			{
-				for (int g = 0; g < 10; g++) {
-				TechMap[x+g][i] = 1;
-				memcpy(image->data + ((i)* image->sizeX + x + g) * 3, pixel, 3);
-			}
+				for (int g = 0; g < 10; g++) 
+				{
+					TechMap[x + g][i] = 1;
+					memcpy(image->data + ((i)* image->sizeX + x + g) * 3, pixel, 3);
+				}
 			}
 		}
 	}
@@ -116,7 +117,7 @@ void playerController(int id)
 			}
 			if (player.itself.x != 3200)
 				moveObject(Convertor, 1);
-			if (GameObjects[CameraTarget]->x >= 120)
+			if (GameObjects[CameraTarget]->x > 120 && GameObjects[CameraTarget]->x < 2400)
 			{
 				FR += GameObjects[CameraTarget]->speed;
 				FL += GameObjects[CameraTarget]->speed;
@@ -127,12 +128,6 @@ void playerController(int id)
 				}
 				BACKGROUND.animation[0].frame = mainArray->data + (GameObjects[CameraTarget]->x - 120) * 3;
 				FOREGROUND.animation[0].frame = (mainArray + FOREGROUND.animation[0].id)->data + (GameObjects[CameraTarget]->x - 120) * 3;
-				//for (int i = 0; i < 600; i++)
-				//{
-				//	
-				//	//memcpy(BACKGROUND.animation[0].frame + i * 800 * 3, mainArray->data + (i* mainArray->sizeX + GameObjects[CameraTarget]->x -120) * 3, 2400);
-				//	memcpy(FOREGROUND.animation[0].frame + i * 800 * 3, (mainArray + FOREGROUND.animation->id)->data + (i* (mainArray + FOREGROUND.animation->id)->sizeX + GameObjects[CameraTarget]->x -120) * 3, 2400);
-				//}
 			}
 			drawObject(&BACKGROUND, 0, 0);
 			status = 1;
@@ -152,7 +147,7 @@ void playerController(int id)
 				}
 				if (GameObjects[CameraTarget]->x != 0)
 					moveObject(Convertor, 0);
-				if (GameObjects[CameraTarget]->x >= 120 )
+				if (GameObjects[CameraTarget]->x >= 120 && GameObjects[CameraTarget]->x <=2400)
 				{
 					FR -= GameObjects[CameraTarget]->speed;
 					FL -= GameObjects[CameraTarget]->speed;
@@ -163,11 +158,6 @@ void playerController(int id)
 					}
 					BACKGROUND.animation[0].frame = mainArray->data + (GameObjects[CameraTarget]->x - 120) * 3;
 					FOREGROUND.animation[0].frame = (mainArray + FOREGROUND.animation[0].id)->data + (GameObjects[CameraTarget]->x - 120) * 3;
-					//for (int i = 0; i < 600; i++)
-					//{
-					//	//memcpy(BACKGROUND.animation[0].frame + i * (mainArray + BACKGROUND.animation->id)->sizeX * 3, mainArray->data + (i* mainArray->sizeX + GameObjects[CameraTarget]->x -120) * 3, 2400);
-					//	memcpy(FOREGROUND.animation[0].frame + i * 800 * 3, (mainArray + FOREGROUND.animation->id)->data + (i* (mainArray + FOREGROUND.animation->id)->sizeX + GameObjects[CameraTarget]->x -120) * 3, 2400);
-					//}
 				}
 				drawObject(&BACKGROUND, 0, 0);
 				status = 1;
@@ -189,15 +179,15 @@ void playerController(int id)
 			CameraLocked = 0;
 			CameraTarget = 2;
 			GetCameraFocus(2);
+			status = 1;
 		}
 		if (GetAsyncKeyState(VK_F3))
 		{
 			CameraLocked = 0;
 			CameraTarget = 3;
 			GetCameraFocus(3);
+			status = 1;
 		}
-		/*if (GetAsyncKeyState(VK_DOWN)) moveObject(player, 3);*/
-		//moveObject(Convertor, 3);
 		isOnGround(&player.itself, 1);
 	}
 	else GetAsyncKeyState(VK_UP);
