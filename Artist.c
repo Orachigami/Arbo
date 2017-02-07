@@ -5,7 +5,7 @@
 #include "ResourceManager.c"
 AUX_RGBImageRec* image;
 
-int last_id = 0;
+static int last_id = 0;
 /*Checks whether two areas are crossing each other*/
 /*Returns the cross-area*/
 struct Area checkCrossing(struct Area* object, GameObject* next_object)
@@ -52,32 +52,15 @@ struct Area checkCrossing(struct Area* object, GameObject* next_object)
 	area.height = -1;
 	return area;
 }
-void Camera(int id)
-{
-	static prev_x = 75,
-		prev_y = 110;
-	int i = 0;
-	if (player.itself.x == prev_x && player.itself.y == prev_y)
-		glutTimerFunc(50, Camera, id);
-	//for (i = 0; i < 600; i++)
-	//	memcpy(GameObjects[0]->animation[0].frame + i * 800 * 3, mainArray->data + (i* mainArray->sizeX + player.itself.x) * 3, 2400);
-	prev_x = player.itself.x;
-	prev_y = player.itself.y;
-	glutTimerFunc(50, Camera, id);
-}
-
 /*Draws the sent AREA for the Object with the sent ID*/
 static int drawArea(struct Area area, int id)
 {
 	int y = 0,
 		x = 0,
-		width = 0,
-		offset = 0;
-	//if (id == 0) width = 800;
-	width = GameObjects[id]->animation[GameObjects[id]->current_animation].width;
-	offset = (area.y - GameObjects[id]->y)*width + area.x - GameObjects[id]->x;
+		width = GameObjects[id]->animation[GameObjects[id]->current_animation].width,
+		offset = (area.y - GameObjects[id]->y)*width + area.x - GameObjects[id]->x;
 	area.x -= FL;
-	if (id != 2)
+	if (id != 2 || area.x < 0)
 	{
 		if (area.x < 800)
 		{
@@ -88,7 +71,8 @@ static int drawArea(struct Area area, int id)
 			else
 				if (area.x + area.width > 0)
 				{
-					if (id != 0 && id != 4) area.width = area.x + area.width;
+					offset = -area.x;
+					area.width = area.x + area.width;
 					area.x = 0;
 					if (area.x + area.width > 800) area.width = 800;
 				}
@@ -98,12 +82,10 @@ static int drawArea(struct Area area, int id)
 		else 
 			return 1;
 	}
-	if (CameraTarget != 0 && CameraLocked == 1 && area.id == CameraTarget && FR != 3200 && GameObjects[CameraTarget]->x >= 120)
+	/*if (CameraTarget != 0 && area.x == GameObjects[id]->x && CameraLocked == 1 && area.id == CameraTarget && FR != 3200 && GameObjects[CameraTarget]->x >= 120)
 	{
-		area.x = 120;
-		area.width = 120;
 		offset = 0;
-	}
+	}*/
 	if ((area.id == 0 || area.id == 4) && offset != 0)
 		offset = (area.y)*width + area.x;
 	offset -= width;
@@ -130,14 +112,8 @@ void drawObject(GameObject* object, int oldx, int oldy)
 		delta_y = object->y - oldy;
 	int id = object->animation[object->current_animation].id,
 		width = object->animation[object->current_animation].width,
-		height = object->animation[object->current_animation].height,
-		tmp1;
+		height = object->animation[object->current_animation].height;
 	register int i = 0;
-	/*for (i = 0; i < height; i++)
-	{
-		tmp1 = ((i + oldy) * image->sizeX + (oldx)) * 3;
-		memcpy(image->data + tmp1, (mainArray)->data + tmp1, 3 * width);
-	}*/
 	extended_area.id = id;
 	extended_area.width = (delta_x < 0) ? -delta_x + width : delta_x + width;
 	extended_area.height = (delta_y < 0) ? -delta_y + height : delta_y + height;
@@ -149,12 +125,6 @@ void drawObject(GameObject* object, int oldx, int oldy)
 	original_area.height = height;
 	original_area.x = object->x;
 	original_area.y = object->y;
-	/*area.id = 0;
-	area.width = width;
-	area.height = height;
-	area.x = object->x;
-	area.y = object->y;*/
-	//OrderToClear.area[++OrderToClear.last_id] = area;
 	for (i = 0; i < gmlen; i++)
 	{
 		next_object = GameObjects[i];
